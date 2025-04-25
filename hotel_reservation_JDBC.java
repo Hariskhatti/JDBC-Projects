@@ -1,139 +1,137 @@
 package Lets_Ceate_File;
 
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.Scanner;
 
 public class hotel_reservation_JDBC {
     public static final String url = "jdbc:postgresql://localhost:5432/hoteldb";
-    public static final String user = "postgres"; // Default PostgreSQL user
+    public static final String user = "postgres";
     public static final String password = "haris";
+
     public static void main(String[] args) {
-        try{
+        try {
             Class.forName("org.postgresql.Driver");
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e);
         }
-        try{
-            Connection con = DriverManager.getConnection(url,user,password);
+
+        try {
+            Connection con = DriverManager.getConnection(url, user, password);
             Scanner sc = new Scanner(System.in);
-            while(true){
-                System.out.println("Welcome to the hotel");
-                System.out.println("1. Reserve New Customer");
-                System.out.println("2. See Reservations");
-                System.out.println("3. Update Reservation");
-                System.out.println("4. Delete Reservation");
-                System.out.println("0. Exit");
-                System.out.println("Choose Number Here To Perform Action");
+            while (true) {
+                System.out.println("\n================ Hotel Reservation System ================");
+                System.out.println("1. 🏨 Reserve New Room");
+                System.out.println("2. 📅 View Active Reservations");
+                System.out.println("3. ❌ Cancel Reservation");
+                System.out.println("0. 🚪 Exit");
+                System.out.print("\nChoose an option: ");
+
                 int choose = sc.nextInt();
-                switch (choose){
-                    case 1: reserveNew(con);
-                    break;
-                    case 2:  retriveTable(con);
-                        break;
-                    case 3: reserveUpdate(con);
-                        break;
-                    case 4: reserveDelete(con);
-                        break;
-                    case 0:  exit();
-                    break;
-                    default:
-                        System.out.println("Thanks");
+                switch (choose) {
+                    case 1: reserveNew(con); break;
+                    case 2: retrieveTable(con); break;
+                    case 3: reserveDelete(con); break;
+                    case 0: exit(); break;
+                    default: System.out.println("Invalid Option. Please try again.");
                 }
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e);
         }
     }
-    public static void reserveNew(Connection con){ //Scanner sc dena he argument me
-        try{
-            Statement stmnt = con.createStatement();
-            Scanner sc = new Scanner(System.in);
-            System.out.println("Enter reservation id");
-            int r_id = sc.nextInt();
-            System.out.println("Enter customer name");
-            String c_name = sc.next();
-            System.out.println("Enter customer number");
-            int c_num = sc.nextInt();
-            System.out.println("Enter room number");
-            int r_num = sc.nextInt();
-            int rowsAffect = stmnt.executeUpdate("insert into reservation (reserve_id, customer_name, customer_number, reserved_room) " +
-                    "values (" + r_id + ", '" + c_name + "', " + c_num + ", " + r_num + ");");
-            if (rowsAffect>0){
-                System.out.println("inserted succesfully");
-            }else System.out.println("not successful");
-        }catch (Exception e){
-            System.out.println(e);
-        }
-    }
-    public static void reserveUpdate(Connection con){
+
+    // Method to insert new reservation with current date
+    public static void reserveNew(Connection con) {
         try {
-            PreparedStatement ps = con.prepareStatement("Update reservation set reserve_id = ? , customer_name =? , customer_number =?, reserved_room =? where reserve_id =?");
             Scanner sc = new Scanner(System.in);
-            System.out.println("Enter reserve_id");
+            System.out.print("Enter Reservation ID: ");
             int r_id = sc.nextInt();
-            System.out.println("Enter customer_name");
+            System.out.print("Enter Customer Name: ");
             String c_name = sc.next();
-            System.out.println("Enter cutomer_number");
+            System.out.print("Enter Customer Number: ");
             int c_num = sc.nextInt();
-            System.out.println("Enter reserveed_room");
+            System.out.print("Enter Room Number: ");
             int r_num = sc.nextInt();
-            System.out.println("where reserve_id will be");
-            int ri_id = sc.nextInt();
-            ps.setInt(1,r_id);
-            ps.setString(2,c_name);
-            ps.setInt(3,c_num);
-            ps.setInt(4,r_num);
-            ps.setInt(5,ri_id);
-            int rowsAffect =  ps.executeUpdate();
-            if (rowsAffect>0){
-                System.out.println("Updated Successfully");
-            }else System.out.println("Not Updated");
-        }catch (Exception e ){
+
+            LocalDate today = LocalDate.now();
+
+            String query = "INSERT INTO reservation (reserve_id, customer_name, customer_number, reserved_room, reservation_date) " +
+                    "VALUES (?, ?, ?, ?, ?)";
+            PreparedStatement pst = con.prepareStatement(query);
+            pst.setInt(1, r_id);
+            pst.setString(2, c_name);
+            pst.setInt(3, c_num);
+            pst.setInt(4, r_num);
+            pst.setDate(5, Date.valueOf(today));
+
+            int rowsAffected = pst.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("\n✅ Reservation created successfully on " + today);
+            } else {
+                System.out.println("\n❌ Reservation failed.");
+            }
+        } catch (Exception e) {
             System.out.println(e);
         }
-        }
-    public static void retriveTable(Connection con){
-        try{
+    }
+
+    // Method to retrieve active reservations only
+    public static void retrieveTable(Connection con) {
+        try {
             Statement stmnt = con.createStatement();
-            ResultSet resultSet = stmnt.executeQuery("Select * from reservation");
-            while(resultSet.next()){
+            ResultSet resultSet = stmnt.executeQuery("SELECT * FROM reservation WHERE status = 'active'");
+
+            System.out.println("\n===== Active Reservations =====");
+            while (resultSet.next()) {
                 int id = resultSet.getInt("reserve_id");
                 String name = resultSet.getString("customer_name");
                 int num = resultSet.getInt("customer_number");
                 int r_num = resultSet.getInt("reserved_room");
-                System.out.println(r_num +" "+ name+ " "+ num+ " "+ r_num);
-            }System.out.println("\n\n");
-
-        }catch (Exception e){
+                Date date = resultSet.getDate("reservation_date");
+                System.out.println("ID: " + id + " | Name: " + name + " | Phone: " + num + " | Room: " + r_num + " | Date: " + date);
+            }
+        } catch (Exception e) {
             System.out.println(e);
         }
     }
 
-    public static void reserveDelete(Connection con){
+    // Method to soft-delete reservation and set cancellation date
+    public static void reserveDelete(Connection con) {
         try {
-            Statement stmnt = con.createStatement();
             Scanner sc = new Scanner(System.in);
-            System.out.println("enter room number which you want to delete");
+            System.out.print("Enter Reservation ID to cancel: ");
             int r_id = sc.nextInt();
-            int rowsAffect = stmnt.executeUpdate("delete from reservation where reserved_room= "+r_id+";");
-            if (rowsAffect>0){
-                System.out.println("deleted succesfully");
-            }else System.out.println("deletion not successful");
-        }catch (Exception e){
+
+            System.out.print("Enter cancellation date (YYYY-MM-DD): ");
+            String cancelDateInput = sc.next();
+            LocalDate cancelDate = LocalDate.parse(cancelDateInput);
+
+            String query = "UPDATE reservation SET status = 'cancelled', cancelled_date = ? WHERE reserve_id = ?";
+            PreparedStatement pst = con.prepareStatement(query);
+            pst.setDate(1, Date.valueOf(cancelDate));
+            pst.setInt(2, r_id);
+
+            int rowsAffected = pst.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("\n❌ Reservation cancelled on " + cancelDate);
+            } else {
+                System.out.println("\n⚠️ No reservation found with the given ID.");
+            }
+        } catch (Exception e) {
             System.out.println(e);
         }
     }
+
+    // Method to exit system with animation
     public static void exit() throws InterruptedException {
-        System.out.print("Exiting System");
+        System.out.print("\nExiting system");
         int i = 5;
-        while(i!=0){
+        while (i-- > 0) {
             System.out.print(".");
             Thread.sleep(500);
-            i--;
         }
-        System.out.println();
-        System.out.println("ThankYou For Using Hotel Reservation System!!!");
+        System.out.println("\nThank you for using Hotel Reservation System! Have a great day! ✨");
         System.exit(0);
     }
 }
-
