@@ -4,7 +4,7 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.util.Scanner;
 
-public class hotel_reservation_JDBC {
+public class StayEasy {
     public static final String url = "jdbc:postgresql://localhost:5432/hoteldb";
     public static final String user = "postgres";
     public static final String password = "haris";
